@@ -115,10 +115,35 @@ function detectInlineArtifacts(text: string): Artifact[] {
   return artifacts;
 }
 
+function cleanReplyText(raw: string, removeUrls: string[]): string {
+  let out = raw;
+  for (const u of removeUrls) out = out.split(u).join("");
+  // strip "— Piter" / "- Piter" / "— Leo" trailing signatures
+  out = out.replace(/[\s\u2014\u2013-]+\s*(Piter|Leo|Maya|Nova|Kai|Rio)\.?\s*$/i, "");
+  // collapse 3+ spaces or empty parens left behind
+  out = out.replace(/\(\s*\)/g, "").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  return out;
+}
+
 function MessageBubble({ msg, agent, onOpenArtifact, index }: { msg: Message; agent: Agent; onOpenArtifact: (a: Artifact) => void; index: number }) {
   const isUser = msg.authorId === "you";
   const artifact = msg.artifactId ? agent.artifacts[msg.artifactId] : null;
   const inlineArtifacts = !isUser && msg.text ? detectInlineArtifacts(msg.text) : [];
+  const cleanedText = !isUser && msg.text ? cleanReplyText(msg.text, inlineArtifacts.map((a) => a.url!)) : msg.text;
+
+  if (!isUser && msg.kind === "status" && msg.text === "...") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.02 }}
+        className="flex gap-3 justify-start"
+      >
+        <Avatar name={agent.name} accent={`bg-gradient-to-br ${agent.accent}`} size={32} />
+        <TypingBubble hint={(msg as any).hint as string | undefined} />
+      </motion.div>
+    );
+  }
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -128,14 +153,14 @@ function MessageBubble({ msg, agent, onOpenArtifact, index }: { msg: Message; ag
     >
       {!isUser && <Avatar name={agent.name} accent={`bg-gradient-to-br ${agent.accent}`} size={32} />}
       <div className={cn("max-w-[560px] flex flex-col", isUser ? "items-end" : "items-start")}>
-        {msg.text && (
+        {(isUser ? msg.text : cleanedText) && (
           <div
             className={cn(
               "px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed whitespace-pre-wrap",
               isUser ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted/60 rounded-bl-sm"
             )}
           >
-            {msg.text}
+            {isUser ? msg.text : cleanedText}
           </div>
         )}
         {msg.attachments?.map((att) => (
@@ -157,6 +182,29 @@ function MessageBubble({ msg, agent, onOpenArtifact, index }: { msg: Message; ag
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function TypingBubble({ hint }: { hint?: string }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return (
+    <div className="flex flex-col items-start">
+      <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-muted/60 inline-flex items-center gap-2">
+        <span className="flex gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+        </span>
+        {hint && <span className="text-[12px] text-muted-foreground ml-1">{hint}</span>}
+      </div>
+      <div className="flex items-center gap-1.5 mt-1 px-1">
+        <span className="text-[10.5px] text-muted-foreground tabular-nums">{elapsed}s</span>
+      </div>
+    </div>
   );
 }
 

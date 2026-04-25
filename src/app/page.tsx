@@ -54,27 +54,92 @@ export default function Home() {
   }
 
   const handleSendToAgent = async (agentId: string, input: { text?: string; attachments?: Attachment[] }) => {
+    // Upload any attachments to get public URLs Piter can use.
+    let uploaded: Attachment[] = [];
+    if (input.attachments?.length) {
+      uploaded = await Promise.all(input.attachments.map(async (att) => {
+        try {
+          const blob = await (await fetch(att.url)).blob();
+          const fd = new FormData();
+          fd.append("file", new File([blob], att.name, { type: att.mime ?? blob.type }));
+          const res = await fetch("/api/upload", { method: "POST", body: fd });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error ?? "upload failed");
+          return { ...att, url: data.url };
+        } catch {
+          return att;
+        }
+      }));
+    }
+
     const userMsg: Message = {
       id: uid(),
       authorId: "you",
       text: input.text,
-      attachments: input.attachments,
+      attachments: uploaded.length ? uploaded : input.attachments,
       ts: now(),
       status: "sent",
     };
     setAgents((prev) => prev.map((a) => a.id === agentId ? { ...a, privateMessages: [...a.privateMessages, userMsg] } : a));
 
-    if (!input.text) return;
+    // Compose the message Piter receives: include attachment URLs inline so he can act on them.
+    const imageUrls = uploaded.filter((a) => a.kind === "image").map((a) => a.url);
+    const audioAttachments = uploaded.filter((a) => a.kind === "audio");
+    const otherAttachments = uploaded.filter((a) => a.kind !== "image" && a.kind !== "audio");
+    let outboundText = input.text ?? "";
 
-    // Show typing placeholder
+    // Transcribe voice messages so Piter receives the text.
+    if (audioAttachments.length) {
+      const transcripts = await Promise.all(audioAttachments.map(async (a) => {
+        try {
+          const r = await fetch("/api/transcribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: a.url }),
+          });
+          const d = await r.json();
+          return d.text || "(audio sin transcribir)";
+        } catch {
+          return "(audio sin transcribir)";
+        }
+      }));
+      const joined = transcripts.join(" ").trim();
+      if (joined) {
+        outboundText = (outboundText ? outboundText + "\n\n" : "") + `[Mensaje de voz transcrito] ${joined}`;
+      }
+    }
+
+    if (imageUrls.length) {
+      outboundText += `\n\n[ADJUNTOS_IMAGEN] El usuario adjuntó ${imageUrls.length} ${imageUrls.length === 1 ? "imagen" : "imágenes"}:\n${imageUrls.map((u, i) => `  ${i + 1}. ${u}`).join("\n")}`;
+    }
+    if (otherAttachments.length) {
+      outboundText += `\n\n[ADJUNTOS_ARCHIVO]\n${otherAttachments.map((a) => `  - ${a.name}: ${a.url}`).join("\n")}`;
+    }
+
+    if (!outboundText.trim()) return;
+
+    // Detect heavy workflows so we can show a more reassuring typing hint.
+    const lower = (input.text ?? "").toLowerCase();
+    let hint: string | undefined;
+    const imageKeywords = ["imagen", "image", "mockup", "foto", "render", "logo", "outfit", "upscale", "faceswap", "producto", "fondo"];
+    const videoKeywords = ["video", "reel", "clip"];
+    if (imageKeywords.some((k) => lower.includes(k))) {
+      hint = "Generando imagen, ~15-45 s";
+    } else if (videoKeywords.some((k) => lower.includes(k))) {
+      hint = "Procesando video, puede tardar varios minutos";
+    } else {
+      hint = "Pensando...";
+    }
+
     const typingId = uid();
-    setAgents((prev) => prev.map((a) => a.id === agentId ? { ...a, privateMessages: [...a.privateMessages, { id: typingId, authorId: agentId, text: "...", ts: now(), kind: "status" }] } : a));
+    const typingMsg: any = { id: typingId, authorId: agentId, text: "...", ts: now(), kind: "status", hint };
+    setAgents((prev) => prev.map((a) => a.id === agentId ? { ...a, privateMessages: [...a.privateMessages, typingMsg] } : a));
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agent_id: agentId, message: input.text }),
+        body: JSON.stringify({ agent_id: agentId, message: outboundText }),
       });
       const data = await res.json();
       const reply: Message = {
