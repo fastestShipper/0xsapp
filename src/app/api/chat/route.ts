@@ -18,6 +18,8 @@ export async function POST(req: Request) {
         user_context_block: "",
         message: body.message,
         history: [],
+        user_id: typeof body.user_id === "string" ? body.user_id : undefined,
+        user_name: typeof body.user_name === "string" ? body.user_name : undefined,
       });
       return NextResponse.json({ text: out.text });
     } catch (err: any) {

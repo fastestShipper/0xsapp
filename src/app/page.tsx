@@ -105,15 +105,15 @@ export default function Home() {
       }));
       const joined = transcripts.join(" ").trim();
       if (joined) {
-        outboundText = (outboundText ? outboundText + "\n\n" : "") + `[Mensaje de voz transcrito] ${joined}`;
+        outboundText = (outboundText ? outboundText + "\n\n" : "") + `(Mensaje de voz transcrito) ${joined}`;
       }
     }
 
     if (imageUrls.length) {
-      outboundText += `\n\n[ADJUNTOS_IMAGEN] El usuario adjuntó ${imageUrls.length} ${imageUrls.length === 1 ? "imagen" : "imágenes"}:\n${imageUrls.map((u, i) => `  ${i + 1}. ${u}`).join("\n")}`;
+      outboundText += `\n\n=== ADJUNTOS_IMAGEN === El usuario adjuntó ${imageUrls.length} ${imageUrls.length === 1 ? "imagen" : "imágenes"}:\n${imageUrls.map((u, i) => `  ${i + 1}. ${u}`).join("\n")}`;
     }
     if (otherAttachments.length) {
-      outboundText += `\n\n[ADJUNTOS_ARCHIVO]\n${otherAttachments.map((a) => `  - ${a.name}: ${a.url}`).join("\n")}`;
+      outboundText += `\n\n=== ADJUNTOS_ARCHIVO ===\n${otherAttachments.map((a) => `  - ${a.name}: ${a.url}`).join("\n")}`;
     }
 
     if (!outboundText.trim()) return;
@@ -135,11 +135,14 @@ export default function Home() {
     const typingMsg: any = { id: typingId, authorId: agentId, text: "...", ts: now(), kind: "status", hint };
     setAgents((prev) => prev.map((a) => a.id === agentId ? { ...a, privateMessages: [...a.privateMessages, typingMsg] } : a));
 
+    const userId = typeof window !== "undefined" ? (localStorage.getItem("controla:user_id") ?? "anon") : "anon";
+    const userName = typeof window !== "undefined" ? (localStorage.getItem("controla:user_name") ?? "") : "";
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agent_id: agentId, message: outboundText }),
+        body: JSON.stringify({ agent_id: agentId, message: outboundText, user_id: userId, user_name: userName }),
       });
       const data = await res.json();
       const reply: Message = {
