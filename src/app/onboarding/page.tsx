@@ -82,9 +82,23 @@ export default function OnboardingPage() {
               disabled={!name.trim()}
               className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-medium text-[14px] hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
-              Empezar <ArrowRight size={14} />
+              Empezar con Piter <ArrowRight size={14} />
             </button>
-            <p className="text-[11px] text-muted-foreground text-center pt-1">Sin tarjeta. Sin tutorial. Solo conversación con Piter.</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (!name.trim()) return;
+                localStorage.setItem("controla:user_name", name.trim());
+                localStorage.setItem("controla:roster", JSON.stringify([]));
+                localStorage.setItem("controla:onboarded", "true");
+                router.push("/");
+              }}
+              disabled={!name.trim()}
+              className="w-full h-9 rounded-lg border bg-transparent hover:bg-accent text-[13px] text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+            >
+              Saltar y entrar en blanco
+            </button>
+            <p className="text-[11px] text-muted-foreground text-center pt-1">Sin tarjeta. Sin tutorial. Empieza como prefieras.</p>
           </form>
         </div>
       </div>

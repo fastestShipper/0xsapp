@@ -185,6 +185,18 @@ function PreviewArtifact({ artifact }: { artifact: Artifact }) {
 }
 
 function ImageArtifact({ artifact }: { artifact: Artifact }) {
+  if (artifact.url) {
+    return (
+      <div className="p-4 flex flex-col gap-3">
+        <div className="rounded-xl overflow-hidden border bg-muted/20">
+          <img src={artifact.url} alt={artifact.title} className="w-full h-auto block" />
+        </div>
+        <a href={artifact.url} target="_blank" rel="noreferrer" className="text-[11.5px] text-muted-foreground hover:text-primary truncate">
+          {artifact.url}
+        </a>
+      </div>
+    );
+  }
   return (
     <div className="p-4 grid grid-cols-3 gap-3">
       {[
@@ -196,9 +208,6 @@ function ImageArtifact({ artifact }: { artifact: Artifact }) {
           <div className={cn("absolute inset-0 bg-gradient-to-br", g)} />
           <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-3xl tracking-tight">
             {["CA", "ca.", "△"][i]}
-          </div>
-          <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded bg-black/40 backdrop-blur text-white text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-            Direccion {i + 1}
           </div>
         </div>
       ))}
