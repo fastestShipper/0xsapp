@@ -12,12 +12,23 @@ export type Artifact = {
   producedBy?: string;
 };
 
+export type Attachment = {
+  id: string;
+  kind: "audio" | "file" | "image";
+  name: string;
+  size?: number;
+  url: string;
+  durationMs?: number;
+  mime?: string;
+};
+
 export type Message = {
   id: string;
   authorId: string;
   text?: string;
   ts: string;
   artifactId?: string;
+  attachments?: Attachment[];
   status?: "sent" | "delivered" | "read";
   kind?: "message" | "system" | "handoff" | "status";
 };
@@ -91,10 +102,7 @@ export const PITER: Agent = {
   isConcierge: true,
   tools: ["abrir proyectos", "asignar especialistas", "memoria global", "marketplace"],
   outputs: ["doc"],
-  privateMessages: [
-    { id: "p1", authorId: "piter", text: "Bienvenido. Ya armamos tu equipo. Cuando quieras empezar algo, dime qué quieres lograr y abro un proyecto con los especialistas correctos.", ts: "09:14" },
-    { id: "p2", authorId: "piter", text: "Mientras tanto, tus especialistas están en silencio en tu lista de contactos. Solo te escribo yo. Si necesitas algo puntual, escríbeles en privado.", ts: "09:14" },
-  ],
+  privateMessages: [],
   artifacts: {},
 };
 
@@ -223,4 +231,4 @@ export const SAMPLE_PROJECT: Project = {
   },
 };
 
-export const PROJECTS: Project[] = [SAMPLE_PROJECT];
+export const PROJECTS: Project[] = [];

@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pause, Play, Users, MoreHorizontal, MessageSquare, FileText, Sparkles, AlertCircle } from "lucide-react";
+import { Pause, Play, Users, MoreHorizontal, MessageSquare, FileText, Sparkles, AlertCircle, Send, Paperclip, Mic, X } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { cn } from "@/lib/cn";
-import type { Agent, Artifact, Project } from "@/lib/agents";
+import type { Agent, Artifact, Attachment, Project } from "@/lib/agents";
 
 export function GroupChat({
   project,
@@ -12,12 +12,14 @@ export function GroupChat({
   onOpenArtifact,
   onPauseToggle,
   onMessagePiter,
+  onSend,
 }: {
   project: Project;
   agentsById: Record<string, Agent>;
   onOpenArtifact: (artifact: Artifact) => void;
   onPauseToggle: () => void;
   onMessagePiter: () => void;
+  onSend: (input: { text?: string; attachments?: Attachment[] }) => void;
 }) {
   const isPaused = project.status === "paused";
   return (
@@ -156,7 +158,7 @@ export function GroupChat({
         </div>
       </div>
 
-      <SupervisorComposer />
+      <SupervisorComposer onSend={onSend} />
     </div>
   );
 }
@@ -192,19 +194,32 @@ function ProjectGoalCard({ project, agentsById }: { project: Project; agentsById
   );
 }
 
-function SupervisorComposer() {
+function SupervisorComposer({ onSend }: { onSend: (input: { text?: string; attachments?: Attachment[] }) => void }) {
+  const [text, setText] = useState("");
+  const submit = () => {
+    if (!text.trim()) return;
+    onSend({ text: text.trim() });
+    setText("");
+  };
   return (
     <div className="px-5 pb-5 pt-2 border-t bg-card/30">
       <div className="max-w-[820px] mx-auto rounded-2xl border bg-card shadow-sm focus-within:border-primary/40 focus-within:shadow-md transition-all">
         <textarea
-          placeholder="Escribe solo si necesitas intervenir. Para ajustes generales, mejor habla con Piter en privado."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
+          placeholder="Escribe solo si necesitas intervenir. Enter para enviar."
           rows={1}
           className="w-full bg-transparent px-4 pt-3 pb-1 outline-none resize-none text-[13.5px] placeholder:text-muted-foreground"
         />
         <div className="flex items-center justify-between px-2 pb-2">
           <span className="text-[10.5px] text-muted-foreground px-2">Tu intervención pausa al equipo brevemente para considerar el input.</span>
-          <button className="h-8 px-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-[12.5px] font-medium transition-colors">
-            Intervenir
+          <button
+            onClick={submit}
+            disabled={!text.trim()}
+            className="h-8 px-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-[12.5px] font-medium transition-colors flex items-center gap-1.5"
+          >
+            <Send size={12} /> Intervenir
           </button>
         </div>
       </div>

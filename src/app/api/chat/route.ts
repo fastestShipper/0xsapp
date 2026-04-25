@@ -9,6 +9,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "agent_id and message required" }, { status: 400 });
   }
 
+  // If Hermes bridge is available, talk to it directly without Supabase.
+  if (process.env.HERMES_USA_URL) {
+    try {
+      const out = await callAgent({
+        agent_id: body.agent_id,
+        system_prompt: "",
+        user_context_block: "",
+        message: body.message,
+        history: [],
+      });
+      return NextResponse.json({ text: out.text });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message ?? "hermes error" }, { status: 502 });
+    }
+  }
+
   if (isDemoMode()) {
     return NextResponse.json({
       text: `[demo mode] You said: "${body.message}". Configure Supabase + Hermes to enable real chat.`,

@@ -33,6 +33,8 @@ export async function callAgent(input: ChatInput): Promise<ChatOutput> {
 }
 
 async function callHermes(baseUrl: string, input: ChatInput): Promise<ChatOutput> {
+  // Map app agent IDs to Hermes profile names. Piter = default profile (Hermes core).
+  const profile = input.agent_id === "piter" ? "default" : input.agent_id;
   const res = await fetch(`${baseUrl}/chat`, {
     method: "POST",
     headers: {
@@ -40,15 +42,14 @@ async function callHermes(baseUrl: string, input: ChatInput): Promise<ChatOutput
       ...(process.env.HERMES_USA_TOKEN ? { Authorization: `Bearer ${process.env.HERMES_USA_TOKEN}` } : {}),
     },
     body: JSON.stringify({
-      profile_id: input.agent_id,
-      system_prompt: input.system_prompt,
-      user_context: input.user_context_block,
+      profile,
       message: input.message,
-      history: input.history,
     }),
   });
   if (!res.ok) throw new Error(`Hermes USA ${res.status}: ${await res.text()}`);
-  return (await res.json()) as ChatOutput;
+  const data = (await res.json()) as { text?: string; error?: string };
+  if (data.error) throw new Error(data.error);
+  return { text: data.text ?? "" };
 }
 
 async function callAnthropic(input: ChatInput): Promise<ChatOutput> {
