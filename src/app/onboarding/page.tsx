@@ -28,6 +28,10 @@ export default function OnboardingPage() {
   const submitRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    if (!localStorage.getItem("controla:user_id")) {
+      const uid = crypto.randomUUID().split("-").slice(0, 4).join("");
+      localStorage.setItem("controla:user_id", uid);
+    }
     localStorage.setItem("controla:user_name", name.trim());
     setRegistered(true);
   };
@@ -88,6 +92,10 @@ export default function OnboardingPage() {
               type="button"
               onClick={() => {
                 if (!name.trim()) return;
+                if (!localStorage.getItem("controla:user_id")) {
+                  const uid = crypto.randomUUID().split("-").slice(0, 4).join("");
+                  localStorage.setItem("controla:user_id", uid);
+                }
                 localStorage.setItem("controla:user_name", name.trim());
                 localStorage.setItem("controla:roster", JSON.stringify([]));
                 localStorage.setItem("controla:onboarded", "true");

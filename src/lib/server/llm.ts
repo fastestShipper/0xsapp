@@ -10,6 +10,8 @@ type ChatInput = {
   user_context_block: string;
   message: string;
   history: { role: "user" | "assistant"; content: string }[];
+  user_id?: string;
+  user_name?: string;
 };
 
 type ChatOutput = {
@@ -44,6 +46,8 @@ async function callHermes(baseUrl: string, input: ChatInput): Promise<ChatOutput
     body: JSON.stringify({
       profile,
       message: input.message,
+      user_id: input.user_id,
+      user_name: input.user_name,
     }),
   });
   if (!res.ok) throw new Error(`Hermes USA ${res.status}: ${await res.text()}`);
