@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HTTP bridge: app.controla.group -> Hermes loki CLI with per-user session persistence."""
+"""HTTP bridge: LLM backend CLI with per-user session persistence."""
 import json
 import os
 import re
@@ -7,8 +7,8 @@ import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-HERMES_HOME = "/root/kali-workspace/configs/.hermes"
-SESSION_MAP_PATH = "/root/hermes-bridge/sessions.json"
+HERMES_HOME = os.environ.get("HERMES_HOME", os.path.expanduser("~/.hermes"))
+SESSION_MAP_PATH = os.environ.get("SESSION_MAP_PATH", os.path.join(HERMES_HOME, "bridge-sessions.json"))
 TIMEOUT = 240
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
